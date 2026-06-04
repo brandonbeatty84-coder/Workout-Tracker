@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Workout Tracker — Brandon</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a; color: #f0f0f0;
+    font-family: 'DM Mono', 'Courier New', monospace;
+    max-width: 480px; margin: 0 auto;
+    padding-bottom: 80px; min-height: 100vh;
+  }
+  .header {
+    padding: 24px 20px 16px; border-bottom: 1px solid #1e1e1e;
+    position: sticky; top: 0; background: #0a0a0a; z-index: 10;
+  }
+  .header-top { display: flex; justify-content: space-between; align-items: center; }
+  .date-label { font-size: 11px; color: #555; letter-spacing: 3px; text-transform: uppercase; }
+  .workout-title { font-size: 22px; font-weight: 700; color: #fff; margin-top: 2px; }
+  .history-btn {
+    background: #1a1a1a; color: #888; border: none; border-radius: 8px;
+    padding: 8px 14px; font-size: 11px; font-family: inherit; font-weight: 700;
+    letter-spacing: 1px; cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+  }
+  .history-btn.active { background: #e8ff47; color: #000; }
+  .day-selector {
+    display: flex; gap: 6px; margin-top: 16px;
+    overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;
+  }
+  .day-selector::-webkit-scrollbar { display: none; }
+  .day-btn {
+    background: #141414; color: #666; border: none; border-radius: 6px;
+    padding: 6px 12px; font-size: 10px; font-family: inherit; font-weight: 700;
+    letter-spacing: 1px; cursor: pointer; white-space: nowrap;
+    text-transform: uppercase; flex-shrink: 0; transition: all 0.2s;
+  }
+  .day-btn.active { background: #e8ff47; color: #000; }
+  .content { padding: 12px 16px; }
+  .exercise-card {
+    margin-bottom: 10px; background: #0e0e0e; border-radius: 12px;
+    border: 1px solid #1a1a1a; overflow: hidden; transition: border-color 0.2s;
+  }
+  .exercise-card.open { background: #111; border-color: #e8ff47; }
+  .exercise-header {
+    width: 100%; background: none; border: none; padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; text-align: left;
+  }
+  .exercise-name { font-size: 13px; font-weight: 700; color: #ddd; letter-spacing: 0.5px; }
+  .exercise-card.open .exercise-name { color: #e8ff47; }
+  .exercise-meta { font-size: 10px; color: #555; margin-top: 3px; letter-spacing: 1px; }
+  .last-week { color: #3a7a3a; margin-left: 8px; }
+  .toggle-btn {
+    width: 24px; height: 24px; background: #1a1a1a; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #555; flex-shrink: 0; transition: all 0.2s;
+  }
+  .exercise-card.open .toggle-btn { background: #e8ff47; color: #000; }
+  .set-inputs { padding: 0 16px 16px; }
+  .col-headers { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .col-label { font-size: 9px; color: #444; letter-spacing: 2px; text-transform: uppercase; }
+  .set-row { display: grid; grid-template-columns: 40px 1fr 1fr; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .set-num {
+    font-size: 12px; color: #555; font-weight: 700; width: 28px; height: 28px;
+    background: #161616; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  }
+  .set-input {
+    width: 100%; background: #161616; border: 1px solid #222; border-radius: 8px;
+    padding: 10px 12px; color: #666; font-size: 15px; font-family: inherit;
+    font-weight: 700; outline: none; transition: all 0.2s;
+  }
+  .set-input:focus { border-color: #e8ff47; color: #e8ff47; }
+  .set-input.filled { border-color: #2a4a2a; color: #e8ff47; }
+  .last-hint { font-size: 10px; color: #3a6a3a; margin-top: 4px; letter-spacing: 0.5px; }
+  .save-btn {
+    width: 100%; margin-top: 8px; padding: 16px; background: #e8ff47; color: #000;
+    border: none; border-radius: 12px; font-size: 13px; font-family: inherit;
+    font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; transition: all 0.3s;
+  }
+  .save-btn.saved { background: #2a4a2a; color: #5aff5a; }
+  .history-content { padding: 12px 16px; }
+  .history-card { margin-bottom: 16px; background: #0e0e0e; border-radius: 12px; border: 1px solid #1a1a1a; overflow: hidden; }
+  .history-date { padding: 12px 16px; border-bottom: 1px solid #1a1a1a; font-size: 11px; color: #e8ff47; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; }
+  .history-body { padding: 12px 16px; }
+  .history-exercise { margin-bottom: 12px; }
+  .history-exercise-name { font-size: 11px; color: #888; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase; }
+  .history-sets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .history-set { background: #161616; border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #ccc; font-weight: 700; }
+  .empty-state { padding: 40px; text-align: center; color: #444; }
+  .empty-icon { font-size: 32px; margin-bottom: 12px; }
+  .empty-text { font-size: 13px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="date-label" id="dateLabel"></div>
+      <div class="workout-title" id="workoutTitle"></div>
+    </div>
+    <button class="history-btn" id="historyBtn" onclick="toggleView()">History</button>
+  </div>
+  <div class="day-selector" id="daySelector"></div>
+</div>
+<div id="workoutView" class="content"></div>
+<div id="historyView" class="history-content" style="display:none"></div>
+
+<script>
+const WORKOUTS = {
+  Monday: { label: "Push Day", emoji: "💪", exercises: [
+    { name: "Barbell Bench Press", sets: 4, repTarget: "6-8" },
+    { name: "Incline Dumbbell Press", sets: 3, repTarget: "8-10" },
+    { name: "Seated Cable Fly", sets: 3, repTarget: "12-15" },
+    { name: "Cable Lateral Raises", sets: 3, repTarget: "12-15" },
+    { name: "Tricep Rope Pushdown", sets: 3, repTarget: "12" },
+    { name: "Overhead Tricep Extension", sets: 3, repTarget: "12" },
+  ]},
+  Tuesday: { label: "Pull Day", emoji: "🏋️", exercises: [
+    { name: "Weighted Pull-Ups", sets: 4, repTarget: "6-8" },
+    { name: "Barbell Row", sets: 4, repTarget: "6-8" },
+    { name: "Chest-Supported DB Row", sets: 3, repTarget: "10-12" },
+    { name: "Straight-Arm Pulldown", sets: 3, repTarget: "12-15" },
+    { name: "Barbell Shrug", sets: 3, repTarget: "10-12" },
+    { name: "Barbell Curl", sets: 3, repTarget: "10-12" },
+    { name: "Hammer Curls", sets: 3, repTarget: "12" },
+  ]},
+  Wednesday: { label: "Leg Day", emoji: "🦵", exercises: [
+    { name: "Barbell Squat", sets: 4, repTarget: "6-8" },
+    { name: "Romanian Deadlift", sets: 3, repTarget: "8-10" },
+    { name: "Leg Press", sets: 3, repTarget: "10-12" },
+    { name: "Walking Lunges", sets: 3, repTarget: "12 each" },
+    { name: "Leg Curl", sets: 3, repTarget: "12" },
+    { name: "Calf Raises", sets: 4, repTarget: "15" },
+  ]},
+  Thursday: { label: "Shoulder Day", emoji: "🔝", exercises: [
+    { name: "Seated DB Shoulder Press (85°)", sets: 4, repTarget: "6-8" },
+    { name: "Cable Lateral Raise", sets: 4, repTarget: "12-15" },
+    { name: "Rear Delt Cable Fly", sets: 3, repTarget: "15-20" },
+    { name: "Face Pull", sets: 3, repTarget: "15-20" },
+    { name: "Lateral Raise Drop Set", sets: 2, repTarget: "12 drop 8-10" },
+  ]},
+  Friday: { label: "Arms & Weak Points", emoji: "💥", exercises: [
+    { name: "EZ Bar Curl", sets: 4, repTarget: "10-12" },
+    { name: "Decline Close Grip Bench", sets: 4, repTarget: "6-8" },
+    { name: "Incline Dumbbell Curl", sets: 3, repTarget: "12" },
+    { name: "Cable Tricep Kickback", sets: 3, repTarget: "12" },
+    { name: "Lateral Raises", sets: 3, repTarget: "15" },
+  ]},
+};
+
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+let selectedDay = (() => { const d = new Date().toLocaleDateString("en-US",{weekday:"long"}); return DAYS.includes(d)?d:"Monday"; })();
+let currentView = "workout";
+let openExercise = null;
+let sessionData = {};
+let history = (() => { try { return JSON.parse(localStorage.getItem("bb_workout_v2")||"{}"); } catch { return {}; } })();
+
+const getDateKey = (d=new Date()) => d.toISOString().split("T")[0];
+const todayStr = () => `${getDateKey()}_${selectedDay}`;
+const saveHistory = () => { try { localStorage.setItem("bb_workout_v2", JSON.stringify(history)); } catch {} };
+
+function getLastWeek(day, name) {
+  const today = new Date();
+  for (let i=1; i<=14; i++) {
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const k = `${getDateKey(d)}_${day}`;
+    if (history[k]?.[name]) return history[k][name];
+  }
+  return null;
+}
+
+function initSession() {
+  const existing = history[todayStr()] || {};
+  sessionData = {};
+  WORKOUTS[selectedDay].exercises.forEach(ex => {
+    sessionData[ex.name] = existing[ex.name] || Array.from({length:ex.sets},()=>({weight:"",reps:""}));
+  });
+}
+
+function safeId(name) { return name.replace(/[^a-zA-Z0-9]/g,"_"); }
+
+function renderHeader() {
+  document.getElementById("dateLabel").textContent = new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  const w = WORKOUTS[selectedDay];
+  document.getElementById("workoutTitle").textContent = w.emoji + " " + w.label;
+  document.getElementById("daySelector").innerHTML = DAYS.map(d =>
+    `<button class="day-btn ${d===selectedDay?"active":""}" onclick="selectDay('${d}')">${d.slice(0,3)}</button>`
+  ).join("");
+  const btn = document.getElementById("historyBtn");
+  btn.textContent = currentView==="history" ? "Back" : "History";
+  btn.className = "history-btn" + (currentView==="history"?" active":"");
+}
+
+function renderWorkout() {
+  const w = WORKOUTS[selectedDay];
+  document.getElementById("workoutView").innerHTML = w.exercises.map(ex => {
+    const last = getLastWeek(selectedDay, ex.name);
+    const isOpen = openExercise === ex.name;
+    const id = safeId(ex.name);
+    let setsHtml = "";
+    if (isOpen) {
+      const sets = sessionData[ex.name] || [];
+      setsHtml = `<div class="set-inputs">
+        <div class="col-headers">
+          <div class="col-label">Set</div>
+          <div class="col-label">Weight (lb)</div>
+          <div class="col-label">Reps</div>
+        </div>
+        ${sets.map((s,i) => `
+          <div class="set-row">
+            <div class="set-num">${i+1}</div>
+            <input class="set-input ${s.weight?"filled":""}" type="number" inputmode="decimal"
+              placeholder="${last?.[i]?.weight||"0"}" value="${s.weight}"
+              oninput="updateSet('${id}','${ex.name}',${i},'weight',this.value)" />
+            <input class="set-input ${s.reps?"filled":""}" type="number" inputmode="numeric"
+              placeholder="${last?.[i]?.reps||"0"}" value="${s.reps}"
+              oninput="updateSet('${id}','${ex.name}',${i},'reps',this.value)" />
+          </div>`).join("")}
+        ${last?'<div class="last-hint">Last session shown as placeholders</div>':""}
+      </div>`;
+    }
+    return `<div class="exercise-card ${isOpen?"open":""}" id="card_${id}">
+      <button class="exercise-header" onclick="toggleEx('${ex.name}')">
+        <div>
+          <div class="exercise-name">${ex.name}</div>
+          <div class="exercise-meta">${ex.sets} SETS · ${ex.repTarget} REPS
+            ${last?`<span class="last-week">· LAST: ${last[0]?.weight||"—"}lb x ${last[0]?.reps||"—"}</span>`:""}
+          </div>
+        </div>
+        <div class="toggle-btn">${isOpen?"−":"+"}</div>
+      </button>
+      ${setsHtml}
+    </div>`;
+  }).join("") + `<button class="save-btn" id="saveBtn" onclick="saveWorkout()">Save Workout</button>`;
+}
+
+function renderHistory() {
+  const keys = Object.keys(history).filter(k=>k.endsWith("_"+selectedDay)).sort().reverse().slice(0,8);
+  const w = WORKOUTS[selectedDay];
+  if (!keys.length) {
+    document.getElementById("historyView").innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No history yet for ${selectedDay}</div></div>`;
+    return;
+  }
+  document.getElementById("historyView").innerHTML = keys.map(key => {
+    const date = key.replace("_"+selectedDay,"");
+    const sd = history[key];
+    const df = new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+    const exHtml = w.exercises.map(ex => {
+      const ed = sd[ex.name]; if (!ed) return "";
+      const filled = ed.filter(s=>s.weight||s.reps); if (!filled.length) return "";
+      return `<div class="history-exercise">
+        <div class="history-exercise-name">${ex.name}</div>
+        <div class="history-sets">${ed.map(s=>s.weight||s.reps?
+          `<div class="history-set"><span style="color:#e8ff47">${s.weight||"—"}</span><span style="color:#444">lb</span><span style="color:#444;margin:0 4px">x</span>${s.reps||"—"}</div>`
+          :"").join("")}</div>
+      </div>`;
+    }).join("");
+    return `<div class="history-card"><div class="history-date">${df}</div><div class="history-body">${exHtml}</div></div>`;
+  }).join("");
+}
+
+function selectDay(day) { selectedDay=day; openExercise=null; initSession(); render(); }
+function toggleView() { currentView=currentView==="workout"?"history":"workout"; render(); }
+function toggleEx(name) { openExercise=openExercise===name?null:name; renderWorkout(); }
+function updateSet(id, name, idx, field, val) { if(sessionData[name]) sessionData[name][idx][field]=val; }
+function saveWorkout() {
+  history[todayStr()] = JSON.parse(JSON.stringify(sessionData));
+  saveHistory();
+  const btn=document.getElementById("saveBtn");
+  if(btn){btn.textContent="✓ Saved";btn.className="save-btn saved";setTimeout(()=>{btn.textContent="Save Workout";btn.className="save-btn";},2000);}
+}
+function render() {
+  renderHeader();
+  if(currentView==="workout"){
+    document.getElementById("workoutView").style.display="block";
+    document.getElementById("historyView").style.display="none";
+    renderWorkout();
+  } else {
+    document.getElementById("workoutView").style.display="none";
+    document.getElementById("historyView").style.display="block";
+    renderHistory();
+  }
+}
+initSession(); render();
+</script>
+</body>
+</html>
